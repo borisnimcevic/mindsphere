@@ -42,6 +42,7 @@ while True:
     client.loop_start()
     client.publish("s/us", "100,CO2+Arduino,MCIoT_MQTTDevice")                        #send information to MindSphere IOT extension with device information
     client.publish("s/us", "110," + mindsphere_id +",Arduino and Lenovo,0.1")       #send information to MindSphere IOT extension with your client ID, System and Rev Number)
+    client.publish("s/us", "112,59.3293,18.0686,50,1")
     client.subscribe("s/ds")
     client.publish("s/us",dummy_data)                                                                   #send Temp T0 data to MindSphere
     '''
