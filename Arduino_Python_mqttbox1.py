@@ -13,6 +13,7 @@ from logininfo import user
 from logininfo import password
 from logininfo import mindsphere_id
 from logininfo import client_address
+from random import randint
 
 
 # Def Variables
@@ -27,24 +28,86 @@ board.digital[7].mode = pyfirmata.INPUT                                         
 analog_output0 = board.get_pin('a:0:o')                                                                # get the information from analog pin number 0. the o stands for output. T0
 analog_output1 = board.get_pin('a:1:o')                                                                # get the information from analog pin number 1. the o stands for output T1
 
+CO_value = 0
+LPG_value = 0
+CH4_value = 0
+C3H8_value = 0
+
 time.sleep(1) #needs this pause... for some reason
 
 while True:
-    A0 = analog_output0.read()                                                                          # read the information of pin0 (it is a voltage of temperature sensor TO)
-    print("V0" + str(A0))
-    dummy_data = "200,CurentTemperature,T0," + str(A0 * 1000).strip() + ",degree"                            #PAYLOAD of Temperature T0 for MindSphere
-    print(dummy_data)
+    #Read data/emissions from Sensors and store in payload format ready to be published later
+    CO2_raw_value = analog_output0.read()
+    CO2_value = CO2_raw_value * 1000
+    CO2_payload = "200,CO2 Emissions,CO2," + str(CO2_value).strip() + ",tonnes"
+    print(CO2_payload)
+
+    rand_num = randint(-10, 10)
+    CO_value += rand_num
+    if CO_value < 0:
+        CO_value = 0 
+    if CO_value > 500:
+        CO_value = 500 
+    CO_payload = "200,CO Emissions,CO," + str(CO_value).strip() + ",tonnes"
+    print(CO_payload)
+
+    rand_num = randint(-10, 10)
+    LPG_value += rand_num
+    if LPG_value < 0:
+        LPG_value = 0 
+    if LPG_value > 500:
+        LPG_value = 500 
+    LPG_payload = "200,LPG Emissions,LPG," + str(LPG_value).strip() + ",tonnes"
+    print(LPG_payload)
+
+    rand_num = randint(-10, 10)
+    CH4_value += rand_num
+    if CH4_value< 0:
+        CH4_value = 0 
+    if CH4_value > 500:
+        CH4_value = 500 
+    CH4_payload = "200,CH4 Emissions,CH4," + str(CH4_value).strip() + ",tonnes"
+    print(CH4_payload)
+
+    rand_num = randint(-10, 10)
+    C3H8_value += rand_num
+    if C3H8_value< 0:
+        C3H8_value = 0 
+    if C3H8_value > 500:
+        C3H8_value = 500 
+    C3H8_payload = "200,C3H8 Emissions,LPG," + str(C3H8_value).strip() + ",tonnes"
+    print(C3H8_payload)
+    print("\n")
 
     # create MQTT Client and connect to MindShpere MQTT Broker
     client = mqtt.Client(client_id = mindsphere_id)                          #create client. Cient ID from MQTTBox!
     client.username_pw_set(user, password)                   #MindSphere user name and pw - David will sent it to you
     client.connect(client_address, 1883)                            #connect to client of MindSphere. use your tenant
     client.loop_start()
-    client.publish("s/us", "100,CO2+Arduino,MCIoT_MQTTDevice")                        #send information to MindSphere IOT extension with device information
+
+    client.publish("s/us", "100,CO2 Stockholm,MCIoT_MQTTDevice")                        #send information to MindSphere IOT extension with device information
     client.publish("s/us", "110," + mindsphere_id +",Arduino and Lenovo,0.1")       #send information to MindSphere IOT extension with your client ID, System and Rev Number)
     client.publish("s/us", "112,59.3293,18.0686,50,1")
     client.subscribe("s/ds")
-    client.publish("s/us",dummy_data)                                                                   #send Temp T0 data to MindSphere
+
+    #Individual publishing first. The last one published will be the first one shown in Mindsphere
+    client.publish("s/us", C3H8_payload)
+    client.publish("s/us", CH4_payload)
+    client.publish("s/us", LPG_payload)
+    client.publish("s/us", CO_payload)
+    client.publish("s/us", CO2_payload)
+    
+    #Group Publishing. All in one same chart called "All Emissions"
+    C3H8_payload_group = "200,All Emissions,C3H8," + str(C3H8_value).strip() + ",tonnes"
+    CH4_payload_group = "200,All Emissions,CH4," + str(CH4_value).strip() + ",tonnes"
+    LPG_payload_group = "200,All Emissions,LPG," + str(LPG_value).strip() + ",tonnes"
+    CO2_payload_group = "200,All Emissions,CO2," + str(CO2_value).strip() + ",tonnes"
+    CO_payload_group = "200,All Emissions,CO," + str(CO_value).strip() + ",tonnes"
+    client.publish("s/us", C3H8_payload_group)
+    client.publish("s/us", CH4_payload_group)
+    client.publish("s/us", LPG_payload_group)
+    client.publish("s/us", CO_payload_group)
+    client.publish("s/us", CO2_payload_group)
     '''
     file = open ("Temperatureausgabe.txt","w")
     file.write(messdaten)
